@@ -54,6 +54,34 @@ async function print(data) {
   }
 }
 
+let printQueue = [];
+let isPrinting = false;
+
+async function processQueue() {
+  if (isPrinting || printQueue.length === 0) {
+    return;
+  }
+
+  isPrinting = true;
+  const printRequest = printQueue.shift();
+
+  try {
+    const result = await print(printRequest.data);
+    printRequest.resolve(result);
+  } catch (error) {
+    console.log("res");
+    console.log(error.message);
+    printRequest.reject({
+      data: printRequest.data,
+      ERROR: true,
+      errorMessage: error.message,
+    });
+  } finally {
+    isPrinting = false;
+    processQueue();
+  }
+}
+
 app.listen(port, () => {
   console.log(`
     
@@ -86,8 +114,19 @@ app.post("/print", async (req, res) => {
     processedIdList.push(req.body.id);
     processedIdList = processedIdList.slice(-10);
 
-    const result = await print(req.body);
+    const printRequest = {
+      data: req.body,
+    };
 
+    const resultPromise = new Promise((resolve, reject) => {
+      printRequest.resolve = resolve;
+      printRequest.reject = reject;
+    });
+
+    printQueue.push(printRequest);
+    processQueue();
+
+    const result = await resultPromise;
     res.send(result);
 
     printActionLogs.push(result);
