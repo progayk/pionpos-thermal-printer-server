@@ -39,6 +39,17 @@ async function print(data) {
   try {
     const { printerConfig } = data;
     const printer = createPrinter(printerConfig);
+    console.log("111", printerConfig.name);
+
+    if (printerConfig.simple) {
+      console.log("simple", data.simpleData);
+      printer.println(data.simpleData);
+      printer.cut();
+      await printer.execute();
+      printer.beep();
+
+      return { SUCCESS: true, id: data.id, data };
+    }
 
     const buffer = Buffer.from(data.image.split(",")[1], "base64");
     await printer.printImageBuffer(buffer);
@@ -101,7 +112,7 @@ app.listen(port, () => {
 });
 
 app.get("/", (req, res) => {
-  res.send("PIONPOS printer app server!");
+  res.send("PIONPOS device server!");
 });
 
 app.post("/print", async (req, res) => {
